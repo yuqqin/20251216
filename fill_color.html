@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Fill Color</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      background-image: url('bg/background 2.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #F7E7CE; /* 圖片載入失敗時的備用背景色 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial;
+      color: rgba(0,0,0,0.6);
+    }
+    .controls {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+    }
+    button {
+      padding: 8px 12px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.6);
+      border-radius: 6px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+    /* sprite */
+    #sprite {
+      position: fixed;
+      left: 8%;
+      top: 50%;
+      transform: translate(var(--sprite-x, 0), -50%);
+      pointer-events: none;
+      z-index: 10;
+      transition: left 0.05s ease-out;
+    }
+    #sprite img {
+      height: 240px; /* 調整顯示高度，視需要改變 */
+      width: auto;
+      display: block;
+      image-rendering: auto;
+    }
+    #spriteWalk {
+      position: fixed;
+      left: 8%;
+      top: 50%;
+      transform: translate(var(--sprite-x, 0), -50%);
+      pointer-events: none;
+      z-index: 10;
+      display: none;
+    }
+    #spriteWalk img {
+      height: 240px;
+      width: auto;
+      display: block;
+      image-rendering: auto;
+    }
+    #spriteFight {
+      position: fixed;
+      left: 8%;
+      top: 50%;
+      transform: translate(var(--sprite-x, 0), -50%);
+      pointer-events: none;
+      z-index: 10;
+      display: none;
+    }
+    #spriteFight img {
+      height: 280px; /* 攻擊動畫顯示高度，可調整 */
+      width: auto;
+      display: block;
+      image-rendering: auto;
+    }
+    #sprite2 {
+      position: fixed;
+      right: 8%;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      z-index: 10;
+    }
+    #sprite2 img {
+      height: 220px; /* 第二角色顯示高度，可調整 */
+      width: auto;
+      display: block;
+      image-rendering: auto;
+      transform: scaleX(-1);
+    }
+    #sprite2Hurt {
+      position: fixed;
+      right: 8%;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      z-index: 10;
+      display: none; /* 初始隱藏 */
+    }
+    #sprite2Hurt img {
+      height: 75px; /* 再次縮小受傷動畫顯示高度 */
+      width: auto;   /* 寬度自動調整以維持正確的長寬比 */
+      transform: scaleX(-1);
+    }
+    #sprite4 {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 15; /* 確保在主要角色和背景之間 */
+    }
+    #sprite4 img {
+      height: 60px; /* 根據要求設定高度 */
+      width: auto;  /* 寬度自動調整以維持比例 */
+      display: block;
+      image-rendering: auto;
+    }
+    #interactiveDialog {
+      position: fixed;
+      top: 15%;
+      right: 10%; /* 調整水平位置 */
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      pointer-events: none;
+      display: none;
+      z-index: 20;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      width: 220px;
+    }
+    #interactiveDialog.visible {
+      pointer-events: auto;
+    }
+    #dialogQuestion, #dialogFeedback {
+      font-size: 22px;
+      font-weight: bold;
+      min-height: 30px;
+      margin-bottom: 8px;
+    }
+    #dialogAnswer {
+      width: 80%;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #555;
+      background: #333;
+      color: #fff;
+      text-align: center;
+      font-size: 18px;
+    }
+    #interactiveDialog3 {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -180%); /* 移到角色三上方 */
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      pointer-events: none;
+      display: none;
+      z-index: 20;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      width: 220px;
+    }
+    #interactiveDialog3.visible {
+      pointer-events: auto;
+    }
+    #interactiveDialog3 .dialogQuestion, #interactiveDialog3 .dialogFeedback {
+      font-size: 22px;
+      font-weight: bold;
+      min-height: 30px;
+      margin-bottom: 8px;
+    }
+    #sprite3 {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 20;
+      display: none; /* 初始隱藏 */
+    }
+    #sprite3 img {
+      height: 55px;
+      width: auto; /* 讓寬度自動調整以維持比例 */
+    }
+    #hintBox {
+      position: fixed; /* 改為相對整個視窗定位 */
+      top: 80px; /* 從頂部定位，略低於角色 */
+      /* 使用 clamp 確保左邊界在 16px 和 (視窗寬度 - 提示框寬度 - 16px) 之間 */
+      left: clamp(16px, 16px, calc(100vw - 100% - 16px));
+      margin-bottom: 10px; /* 與角色圖片的間距 */
+      background: white;
+      border: 2px solid #555;
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: #333; /* 文字顏色 */
+      font-weight: bold;
+      font-size: 16px;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      display: none; /* 初始隱藏，由 JS 控制 */
+      z-index: 21; /* 確保在其他元素之上 */
+    }
+    /* 對話框的小箭頭 */
+    #hintBox::after {
+      content: '';
+      position: absolute;
+      bottom: 100%; /* 箭頭現在指向上方 */
+      left: 30px; /* 調整箭頭位置 */
+      border: 8px solid transparent;
+      border-bottom-color: white; /* 箭頭顏色 */
+    }
+    #instructionText {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 100;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button id="fsBtn">進入全螢幕</button>
+    <button id="exitBtn">離開全螢幕</button>
+  </div>
+
+  <div id="instructionText">AD左右移動 空白鍵攻擊</div>
+  
+  <!-- 動畫角色（固定在畫面左側） -->
+  <div id="sprite">
+    <img id="spriteImg" src="one/stand1/0.png" alt="sprite">
+  </div>
+  
+  <!-- 第一個角色的 Walk 動畫（移動時顯示） -->
+  <div id="spriteWalk">
+    <img id="spriteWalkImg" src="one/walk/0.png" alt="sprite-walk">
+  </div>
+
+  <!-- 第一個角色的 Fight 動畫（攻擊時顯示） -->
+  <div id="spriteFight">
+    <img id="spriteFightImg" src="one/fight/0.png" alt="sprite-fight">
+  </div>
+
+  <!-- 第二個動畫角色（固定在畫面右側） -->
+  <div id="sprite2">
+    <img id="sprite2Img" src="two/stand/0.png" alt="sprite2">
+  </div>
+  <!-- 互動對話框 -->
+  <!-- 第二個動畫角色的 Hurt 動畫（受傷時顯示） -->
+  <div id="sprite2Hurt">
+    <img id="sprite2HurtImg" src="two/hurt/0.png" alt="sprite2-hurt">
+  </div>
+
+  <!-- 新增的中央動畫角色 -->
+  <div id="sprite4">
+    <img id="sprite4Img" src="three/0.png" alt="sprite4">
+  </div>
+
+  <!-- 角色三的互動對話框 -->
+  <div id="interactiveDialog3">
+    <div class="dialogQuestion"></div>
+    <input type="text" class="dialogAnswer" placeholder="請輸入答案">
+    <div class="dialogFeedback"></div>
+  </div>
+
+  <div id="interactiveDialog">
+    <div id="dialogQuestion"></div>
+    <input type="text" id="dialogAnswer" placeholder="請輸入答案">
+    <div id="dialogFeedback"></div>
+  </div>
+
+  <!-- 動畫角色三/answer（左上角提示） -->
+  <div id="sprite3">
+    <img id="sprite3Img" src="answer/0.png" alt="sprite3">
+  </div>
+  <!-- 提示框移到外部，以便更好地定位 -->
+  <div id="hintBox"></div>
+
+  <script>
+    const fsBtn = document.getElementById('fsBtn');
+    const exitBtn = document.getElementById('exitBtn');
+
+    fsBtn.addEventListener('click', async () => {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
+      } catch (err) {
+        // 有些瀏覽器需要使用者手勢，錯誤時不進一步處理
+        console.warn('Fullscreen request failed', err);
+      }
+    });
+
+    exitBtn.addEventListener('click', async () => {
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      } catch (err) {
+        console.warn('Exit fullscreen failed', err);
+      }
+    });
+    
+    // ----------- Sprite Animation -----------
+    (function () {
+      const frameCount = 14; // 0..13
+      const basePath = 'one/stand1/';
+      const ext = '.png';
+      const fps = 6; // 每秒幀數，可調整（已放慢）
+      const img = document.getElementById('spriteImg');
+
+      // 預載入影格（非必要但能避免播放時閃爍）
+      const frames = [];
+      for (let i = 0; i < frameCount; i++) {
+        const f = new Image();
+        f.src = basePath + i + ext;
+        frames.push(f);
+      }
+
+      let current = 0;
+      let playing = true;
+
+      function step() {
+        if (!playing) return;
+        img.src = frames[current].src;
+        current = (current + 1) % frameCount;
+      }
+
+      // 啟動動畫
+      const interval = 1000 / fps;
+      let timer = setInterval(step, interval);
+
+      // 可用滑鼠經過暫停（選擇性）
+      const spriteEl = document.getElementById('sprite');
+      spriteEl.addEventListener('mouseenter', () => { playing = false; });
+      spriteEl.addEventListener('mouseleave', () => { playing = true; });
+
+      // 對外 API（未使用，但方便未來擴充）
+      window._spriteControl = {
+        play() { if (!timer) timer = setInterval(step, interval); playing = true; },
+        pause() { playing = false; },
+        stop() { playing = false; current = 0; },
+        setFPS(n) { clearInterval(timer); timer = setInterval(step, 1000 / n); }
+      };
+    })();
+
+    // ----------- Sprite Walk Animation & Keyboard Control -----------
+    (function () {
+      const spriteContainer = document.getElementById('sprite');
+      const spriteStand = document.getElementById('spriteImg');
+      const spriteWalkContainer = document.getElementById('spriteWalk');
+      const spriteWalkImg = document.getElementById('spriteWalkImg');
+      const spriteFightContainer = document.getElementById('spriteFight');
+      const spriteFightImg = document.getElementById('spriteFightImg');
+      
+      // Walk 動畫參數
+      const walkFrameCount = 9; // 0..8
+      const walkBasePath = 'one/walk/';
+      const walkExt = '.png';
+      const walkFps = 4; // Walk 動畫播放速度
+      
+      // Fight 動畫參數
+      const fightFrameCount = 4; // 0..3
+      const fightBasePath = 'one/fight/';
+      const fightExt = '.png';
+      const fightFps = 8; // Fight 動畫播放速度
+      
+      // 預載入 walk 影格
+      const walkFrames = [];
+      for (let i = 0; i < walkFrameCount; i++) {
+        const f = new Image();
+        f.src = walkBasePath + i + walkExt;
+        walkFrames.push(f);
+      }
+      
+      // 預載入 fight 影格
+      const fightFrames = [];
+      for (let i = 0; i < fightFrameCount; i++) {
+        const f = new Image();
+        f.src = fightBasePath + i + fightExt;
+        fightFrames.push(f);
+      }
+      
+      // 移動參數
+      let spriteX = 0; // 當前 X 位置（像素）
+      const moveSpeed = 10; // 每幀移動距離（像素）
+      
+      // 按鍵狀態
+      const keys = {};
+      let isWalking = false;
+      let isFighting = false;
+      let walkCurrent = 0;
+      let fightCurrent = 0;
+      let walkTimer = null;
+      let fightTimer = null;
+      
+      // 鍵盤事件
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'a' || e.key === 'd') {
+          keys[e.key] = true;
+          e.preventDefault();
+        } else if (e.code === 'Space' && spriteX > window.innerWidth * 0.5 && !isFighting) {
+          startFight();
+          e.preventDefault();
+        }
+      });
+      
+      // 滑鼠點擊事件 - 觸發攻擊動畫
+      document.addEventListener('click', (e) => {
+        // 點擊攻擊已由空白鍵取代
+      });
+
+      document.addEventListener('keyup', (e) => {
+        if (e.key === 'a' || e.key === 'd') {
+          keys[e.key] = false;
+          e.preventDefault();
+        }
+      });
+      
+      // 啟動 Walk 動畫
+      function startWalk() {
+        if (isWalking) return;
+        isWalking = true;
+        walkCurrent = 0;
+        spriteStand.parentElement.style.display = 'none';
+        spriteWalkContainer.style.display = 'block';
+        walkTimer = setInterval(() => {
+          if (isWalking) {
+            spriteWalkImg.src = walkFrames[walkCurrent].src;
+            walkCurrent = (walkCurrent + 1) % walkFrameCount;
+          }
+        }, 1000 / walkFps);
+
+      }
+
+      // 停止 Walk 動畫
+      function stopWalk() {
+        if (!isWalking) return;
+        isWalking = false;
+        if (walkTimer) clearInterval(walkTimer);
+        spriteWalkContainer.style.display = 'none';
+        document.getElementById('sprite').style.display = 'block'; // 直接控制父容器
+        walkCurrent = 0;
+      }
+      
+      // 啟動 Fight 動畫（攻擊期間禁止移動，隱藏其他層以免畫面重疊）
+      function startFight() {
+        if (isFighting) return;
+        isFighting = true;
+        fightCurrent = 0;
+        // 隱藏站立與行走層，顯示攻擊層（避免畫面重疊）
+        spriteStand.parentElement.style.display = 'none';
+        spriteWalkContainer.style.display = 'none';
+        spriteFightContainer.style.display = 'block';
+        // 同步位置與鏡像
+        spriteFightContainer.style.transform = getCurrentTransform();
+        // 觸發角色二受傷動畫（若可用）
+        if (window._sprite2Control && typeof window._sprite2Control.hurt === 'function') {
+          try { window._sprite2Control.hurt(); } catch (err) { console.warn('trigger sprite2 hurt failed', err); }
+        }
+
+        fightTimer = setInterval(() => {
+          if (isFighting) {
+            spriteFightImg.src = fightFrames[fightCurrent].src;
+            fightCurrent++;
+            if (fightCurrent >= fightFrameCount) {
+              stopFight();
+            }
+          }
+        }, 1000 / fightFps);
+      }
+      
+      // 停止 Fight 動畫
+      function stopFight() {
+        if (!isFighting) return;
+        isFighting = false;
+        if (fightTimer) clearInterval(fightTimer);
+        spriteFightContainer.style.display = 'none';
+        // 攻擊結束後恢復站立層顯示
+        spriteStand.parentElement.style.display = 'block';
+        fightCurrent = 0;
+      }
+      
+      // 檢測與第二個角色的碰撞
+      function checkCollision() {
+        if (!window._dialogControl) return; // 防禦性檢查，確保物件已定義
+        // 第二個角色在右邊約 8% 處，当第一個角色 X 位置接近時顯示對話框
+        // 最大觸發距離至 window.innerWidth * 0.5
+        const collisionThreshold = window.innerWidth * 0.5;
+        
+        if (spriteX > collisionThreshold) {
+          if (window._dialogControl) window._dialogControl.show();
+        } else {
+          if (window._dialogControl) window._dialogControl.hide();
+        }
+      }
+      
+      // 檢測與第三個角色(中央)的碰撞
+      function checkCollisionWithSprite3() {
+        if (!window._dialogControl3) return; // 防禦性檢查，確保物件已定義
+        const sprite3El = document.getElementById('sprite4');
+        // 決定當前要檢測哪個角色一的容器（走路或站立）
+        const activeSprite1Container = isWalking ? spriteWalkContainer : spriteContainer;
+        const sprite3Rect = sprite3El.getBoundingClientRect();
+        const sprite1Rect = activeSprite1Container.getBoundingClientRect();
+
+        // 矩形碰撞檢測
+        const isColliding = !(sprite1Rect.right < sprite3Rect.left || sprite1Rect.left > sprite3Rect.right || sprite1Rect.bottom < sprite3Rect.top || sprite1Rect.top > sprite3Rect.bottom);
+
+        if (isColliding) window._dialogControl3.show();
+        else window._dialogControl3.hide();
+      }
+
+      // 取得目前 transform（含鏡像）字串
+      function getCurrentTransform() {
+        // 根據按鍵狀態決定鏡像方向
+        if (keys['a']) return 'translate(var(--sprite-x, 0), -50%) scaleX(-1)';
+        return 'translate(var(--sprite-x, 0), -50%)';
+      }
+
+      // 遊戲循環
+      function update() {
+        let isMoving = keys['a'] || keys['d'];
+
+        // 動態計算邊界，確保角色不會超出螢幕
+        // 根據當前狀態（站、走、打）取得正確的容器來計算寬度
+        const activeContainer = isFighting ? spriteFightContainer : (isWalking ? spriteWalkContainer : spriteContainer);
+        const spriteWidth = activeContainer.getBoundingClientRect().width;
+
+        const initialLeftOffset = window.innerWidth * 0.08;
+        const minX = -initialLeftOffset;
+        const maxX = window.innerWidth - initialLeftOffset - spriteWidth;
+
+        // 當正在攻擊時：禁止變更位置（不處理移動輸入），但仍需更新畫面變換與碰撞檢測
+        if (isFighting) {
+          // 強制攻擊層與底層的 transform 同步（位置/鏡像）
+          const t = getCurrentTransform();
+          spriteFightContainer.style.transform = t;
+          // 更新 CSS 變數（以保持畫面位置一致）
+          const rootStyle = document.documentElement.style;
+          rootStyle.setProperty('--sprite-x', spriteX + 'px');
+          // 檢測碰撞（對話框）並排程下一幀
+          checkCollision(); // 與角色二
+          checkCollisionWithSprite3(); // 與角色三
+          requestAnimationFrame(update);
+          return;
+        }
+
+        if (isMoving) {
+          if (!isWalking) startWalk();
+
+          if (keys['a']) {
+            spriteX = Math.max(spriteX - moveSpeed, minX);
+          }
+          if (keys['d']) {
+            spriteX = Math.min(spriteX + moveSpeed, maxX);
+          }
+          // 根據方向同步 transform
+          const t = getCurrentTransform();
+          spriteWalkContainer.style.transform = t;
+          spriteFightContainer.style.transform = t;
+        } else {
+          if (isWalking) stopWalk();
+          const normalTransform = 'translate(var(--sprite-x, 0), -50%)';
+          spriteWalkContainer.style.transform = normalTransform;
+          spriteFightContainer.style.transform = normalTransform;
+        }
+
+        // 檢測碰撞並更新對話框
+        checkCollision(); // 與角色二
+        checkCollisionWithSprite3(); // 與角色三
+
+        // 更新 CSS 變數
+        const rootStyle = document.documentElement.style;
+        rootStyle.setProperty('--sprite-x', spriteX + 'px');
+
+        requestAnimationFrame(update);
+      }
+      
+      // 啟動遊戲循環
+      update();
+      
+      window._sprite1Movement = {
+        getPos() { return spriteX; },
+        setPos(x) { spriteX = Math.max(minX, Math.min(x, maxX)); }
+      };
+    })();
+
+
+    // ----------- Sprite2 Animation (右側) -----------
+    (function () {
+      const frameCount = 8; // stand 0..7
+      const basePath = 'two/stand/';
+      const ext = '.png';
+      const fps = 6; // stand fps
+      const spriteContainer = document.getElementById('sprite2');
+      const img = document.getElementById('sprite2Img');
+
+      // Stand frames
+      const frames = [];
+      for (let i = 0; i < frameCount; i++) {
+        const f = new Image();
+        f.src = basePath + i + ext;
+        frames.push(f);
+      }
+
+      let current = 0;
+      let playing = true;
+
+      function step() {
+        if (!playing) return;
+        img.src = frames[current].src;
+        current = (current + 1) % frameCount;
+      }
+
+      const interval = 1000 / fps;
+      let timer = setInterval(step, interval);
+
+      spriteContainer.addEventListener('mouseenter', () => { playing = false; });
+      spriteContainer.addEventListener('mouseleave', () => { playing = true; });
+
+      // ----- Hurt 動畫 支援 -----
+      const hurtFrameCount = 10; // two/hurt 10 張
+      const hurtBase = 'two/hurt/';
+      const hurtExt = '.png';
+      const hurtFps = 10; // 可調整受傷速度
+      const hurtFrames = [];
+      const hurtContainer = document.getElementById('sprite2Hurt');
+      const hurtImg = document.getElementById('sprite2HurtImg');
+      for (let i = 0; i < hurtFrameCount; i++) {
+        const f = new Image();
+        f.src = hurtBase + i + hurtExt;
+        hurtFrames.push(f);
+      }
+
+      let hurtCurrent = 0;
+      let hurting = false;
+      let hurtTimer = null;
+
+      function playHurt() {
+        if (hurting) return;
+        hurting = true;
+        // 隱藏 stand 容器，顯示 hurt 容器
+        spriteContainer.style.display = 'none';
+        hurtContainer.style.display = 'block';
+        hurtCurrent = 0;
+        // 顯示首張 hurt 圖
+        hurtImg.src = hurtFrames[0].src;
+
+        hurtTimer = setInterval(() => {
+          hurtCurrent++;
+          if (hurtCurrent >= hurtFrameCount) {
+            stopHurt();
+          } else {
+            hurtImg.src = hurtFrames[hurtCurrent].src;
+          }
+        }, 1000 / hurtFps);
+      }
+
+      function stopHurt() {
+        if (!hurting) return;
+        hurting = false;
+        if (hurtTimer) { clearInterval(hurtTimer); hurtTimer = null; }
+        // 隱藏 hurt 容器，恢復 stand 容器
+        hurtContainer.style.display = 'none';
+        spriteContainer.style.display = 'block';
+      }
+
+      window._sprite2Control = {
+        play() { if (!timer) timer = setInterval(step, interval); playing = true; },
+        pause() { playing = false; },
+        stop() { playing = false; current = 0; if (timer) { clearInterval(timer); timer = null; } },
+        setFPS(n) { if (timer) { clearInterval(timer); } const t = 1000 / n; timer = setInterval(step, t); },
+        // 供外部觸發的 hurt 接口
+        hurt() { playHurt(); }
+      };
+    })();
+
+    // ----------- Sprite3 Animation (Hint/Answer) -----------
+    (function () {
+      const spriteContainer = document.getElementById('sprite3');
+      const img = document.getElementById('sprite3Img');
+      const hintBox = document.getElementById('hintBox');
+      const frameCount = 4; // 0..3
+      const basePath = 'answer/';
+      const ext = '.png';
+      const fps = 4;
+
+      const frames = [];
+      for (let i = 0; i < frameCount; i++) {
+        const f = new Image();
+        f.src = basePath + i + ext;
+        frames.push(f);
+      }
+
+      let current = 0;
+      let timer = null;
+
+      function step() {
+        img.src = frames[current].src;
+        current = (current + 1) % frameCount;
+      }
+
+      window._sprite3Control = {
+        show(hintText) {
+          // 無論動畫是否在播放，都立即更新提示文字
+          hintBox.textContent = hintText;
+          if (timer) return; // 如果動畫已在播放，則不再重複啟動
+          hintBox.style.display = 'block';
+          spriteContainer.style.display = 'block';
+          timer = setInterval(step, 1000 / fps);
+        },
+        hide() {
+          if (timer) {
+            clearInterval(timer);
+            hintBox.style.display = 'none';
+            timer = null;
+            spriteContainer.style.display = 'none';
+          }
+        }
+      };
+    })();
+
+    // ----------- Sprite4 Animation (Center) -----------
+    (function () {
+      const img = document.getElementById('sprite4Img');
+      if (!img) return;
+
+      const frameCount = 6; // 總共 6 張圖
+      const basePath = 'three/';
+      const ext = '.png';
+      const fps = 6;
+
+      const frames = [];
+      for (let i = 0; i < frameCount; i++) {
+        const f = new Image();
+        f.src = basePath + i + ext;
+        frames.push(f);
+      }
+
+      let current = 0;
+      let timer = null;
+
+      function step() {
+        img.src = frames[current].src;
+        current = (current + 1) % frameCount;
+      }
+
+      // 啟動動畫
+      timer = setInterval(step, 1000 / fps);
+
+      // 可選：對外提供控制 API
+      window._sprite4Control = {
+        setFPS(n) { clearInterval(timer); timer = setInterval(step, 1000 / n); }
+      };
+    })();
+
+    // ----------- Interactive Dialog Logic -----------
+    (function () {
+      const dialogContainer = document.getElementById('interactiveDialog');
+      const questionEl = document.getElementById('dialogQuestion');
+      const answerEl = document.getElementById('dialogAnswer');
+      const feedbackEl = document.getElementById('dialogFeedback');
+
+      const praiseMessages = ["太棒了！", "你真是個天才！", "答對了！", "完全正確！"];
+      const encouragementMessages = ["差一點點！", "再試一次吧！", "別灰心，加油！", "換個思路試試？"];
+
+      let currentAnswer = null;
+      let isVisible = false;
+      let questionActive = false;
+
+      function generateQuestion() {
+        const num1 = Math.floor(Math.random() * 50) + 10; // 10-59
+        const num2 = Math.floor(Math.random() * 50) + 10; // 10-59
+        let hint = '';
+        currentAnswer = num1 + num2;
+
+        // 產生提示
+        if (Math.random() < 0.5) {
+          hint = `答案大於 ${currentAnswer - (Math.floor(Math.random() * 5) + 3)}`;
+        } else {
+          hint = `答案小於 ${currentAnswer + (Math.floor(Math.random() * 5) + 3)}`;
+        }
+        if (window._sprite3Control) window._sprite3Control.show(hint);
+        
+        questionEl.textContent = `${num1} + ${num2} = ?`;
+        feedbackEl.textContent = '';
+        answerEl.value = '';
+        answerEl.focus();
+        questionActive = true;
+      }
+
+      function checkAnswer() {
+        const userAnswer = parseInt(answerEl.value, 10);
+        if (isNaN(userAnswer)) return;
+
+        if (userAnswer === currentAnswer) {
+          const msg = praiseMessages[Math.floor(Math.random() * praiseMessages.length)];
+          feedbackEl.textContent = msg;
+          questionActive = false;
+          // 2秒後出新題目
+          setTimeout(() => {
+            if (isVisible) generateQuestion();
+          }, 2000);
+        } else {
+          const msg = encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
+          feedbackEl.textContent = msg;
+          answerEl.value = '';
+          answerEl.focus();
+        }
+      }
+
+      answerEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          checkAnswer();
+        }
+      });
+
+      window._dialogControl = {
+        show() {
+          if (isVisible) return;
+          isVisible = true;
+          dialogContainer.style.display = 'block';
+          dialogContainer.classList.add('visible');
+          if (!questionActive) {
+            generateQuestion();
+          }
+        },
+        hide() {
+          if (!isVisible) return;
+          isVisible = false;
+          dialogContainer.style.display = 'none';
+          dialogContainer.classList.remove('visible');
+          if (window._sprite3Control) window._sprite3Control.hide();
+          // 離開時重置狀態
+          questionActive = false;
+          feedbackEl.textContent = '';
+        }
+      };
+    })();
+
+    // ----------- Interactive Dialog Logic for Sprite 3 (Center) -----------
+    (function () {
+      const dialogContainer = document.getElementById('interactiveDialog3');
+      const questionEl = dialogContainer.querySelector('.dialogQuestion');
+      const answerEl = dialogContainer.querySelector('.dialogAnswer');
+      const feedbackEl = dialogContainer.querySelector('.dialogFeedback');
+
+      const praiseMessages = ["答對了，你好聰明！", "完全正確！", "了不起！", "知識就是力量！"];
+      const encouragementMessages = ["沒關係，再想一下！", "提示就在左上角喔！", "別放棄！", "換個方向思考？"];
+
+      let currentAnswer = null;
+      let isVisible = false;
+      let questionActive = false;
+
+      function generateQuestion() {
+        const num1 = Math.floor(Math.random() * 90) + 10; // 10-99
+        const num2 = Math.floor(Math.random() * 90) + 10; // 10-99
+        let hint = '';
+        currentAnswer = num1 + num2;
+
+        // 產生提示
+        if (Math.random() < 0.5) {
+          hint = `答案是偶數嗎? ${currentAnswer % 2 === 0 ? '是' : '不是'}`;
+        } else {
+          hint = `答案的個位數是 ${currentAnswer % 10}`;
+        }
+        if (window._sprite3Control) window._sprite3Control.show(hint);
+        
+        questionEl.textContent = `${num1} + ${num2} = ?`;
+        feedbackEl.textContent = '';
+        answerEl.value = '';
+        answerEl.focus();
+        questionActive = true;
+      }
+
+      function checkAnswer() {
+        const userAnswer = parseInt(answerEl.value, 10);
+        if (isNaN(userAnswer)) return;
+
+        if (userAnswer === currentAnswer) {
+          const msg = praiseMessages[Math.floor(Math.random() * praiseMessages.length)];
+          feedbackEl.textContent = msg;
+          questionActive = false;
+          setTimeout(() => { if (isVisible) generateQuestion(); }, 2000);
+        } else {
+          const msg = encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
+          feedbackEl.textContent = msg;
+          answerEl.value = '';
+          answerEl.focus();
+        }
+      }
+
+      answerEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
+
+      window._dialogControl3 = {
+        show() {
+          if (isVisible) return;
+          isVisible = true;
+          dialogContainer.style.display = 'block';
+          dialogContainer.classList.add('visible');
+          if (!questionActive) generateQuestion();
+        },
+        hide() {
+          if (!isVisible) return;
+          isVisible = false;
+          dialogContainer.style.display = 'none';
+          dialogContainer.classList.remove('visible');
+          if (window._sprite3Control) window._sprite3Control.hide();
+          // 離開時重置狀態，以便下次能重新觸發
+          questionActive = false;
+        }
+      };
+    })();
+  </script>
+</body>
+</html>
